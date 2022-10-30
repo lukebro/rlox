@@ -4,12 +4,10 @@ mod token;
 use std::io::{self, BufRead, Write};
 use std::{env, fs, path::PathBuf};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result};
 
 use crate::scanner::Scanner;
-use crate::token::TokenType;
 
-const DATA_EXIT_CODE: i32 = 65;
 const USAGE_EXIT_CODE: i32 = 64;
 
 fn main() -> Result<()> {
@@ -55,7 +53,7 @@ fn run_prompt() -> Result<()> {
     Ok(())
 }
 
-fn error(line: u32, message: String) {
+fn report_error(line: u32, message: String) {
     report(line, "".to_string(), message);
 }
 
@@ -65,18 +63,9 @@ fn report(line: u32, location: String, message: String) {
 
 fn run(source: &str) -> Result<()> {
     let mut scanner = Scanner::new(&source);
-    let mut tokens = Vec::new();
+    let tokens = scanner.scan_tokens();
 
-    while let Some(token) = scanner.scan_token() {
-        match token.kind {
-            TokenType::Unknown => {
-                return Err(anyhow!("Unknown token"));
-            }
-            _ => tokens.push(token),
-        }
-    }
-
-    for token in tokens.iter() {
+    for token in &tokens {
         println!("{:?}", token);
     }
 

@@ -1,5 +1,5 @@
+use crate::report_error;
 use crate::token::{Token, TokenType};
-use crate::{error, DATA_EXIT_CODE};
 
 pub struct Scanner<'a> {
     line: u32,
@@ -18,56 +18,102 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn scan_token(&mut self) -> Option<Token> {
-        if self.is_eof() {
-            self.current += 1;
-            return Some(Token {
-                kind: TokenType::EOF,
-                line: self.line,
-                ..Default::default()
-            });
+    pub fn scan_tokens(&mut self) -> Vec<Token> {
+        let mut tokens = Vec::<Token>::new();
+
+        while !self.is_at_end() {
+            self.start = self.current;
+
+            if let Some(token) = self.scan_token() {
+                tokens.push(token);
+            }
         }
 
-        if self.is_at_end() {
-            return None;
-        }
+        tokens.push(Token {
+            kind: TokenType::EOF,
+            line: self.line,
+            ..Default::default()
+        });
 
-        self.start = self.current;
+        tokens
+    }
 
+    fn scan_token(&mut self) -> Option<Token> {
         let ch = self.advance();
 
-        if let Some(kind) = self.match_token(ch) {
-            match kind {
-                TokenType::Unknown => {
-                    error(self.line, "Unknown token".into());
-                    // TODO(luke): this feels weird to exit, we need to just stop
-                    // scanning and go into "error" state
-                    std::process::exit(DATA_EXIT_CODE)
-                }
+        let token = match ch {
+            b'(' => self.create_token(TokenType::LeftParen),
+            b')' => self.create_token(TokenType::RightParen),
+            b',' => self.create_token(TokenType::Comma),
+            b'.' => self.create_token(TokenType::Dot),
+            b'-' => self.create_token(TokenType::Minus),
+            b'+' => self.create_token(TokenType::Plus),
+            b';' => self.create_token(TokenType::Semicolon),
+            b'*' => self.create_token(TokenType::Star),
 
-                TokenType::String => {
-                    if let Some(value) = self.scan_string() {
-                        Some(Token {
-                            kind,
-                            line: self.line,
-                            literal: Some(value.to_string()),
-                            ..Default::default()
-                        })
-                    } else {
-                        error(self.line, "Unterminated string".into());
-                        std::process::exit(DATA_EXIT_CODE)
+            b'!' => self.match_or(b'=', TokenType::BangEqual, TokenType::Bang),
+            b'=' => self.match_or(b'=', TokenType::EqualEqual, TokenType::Equal),
+            b'<' => self.match_or(b'=', TokenType::LessEqual, TokenType::Less),
+            b'>' => self.match_or(b'=', TokenType::GreaterEqual, TokenType::Greater),
+
+            // Comments or forward slash
+            b'/' => {
+                if self.match_next(b'/') {
+                    while self.peek() != b'\n' && !self.is_at_end() {
+                        self.advance();
                     }
+                    return None;
+                } else {
+                    self.create_token(TokenType::Slash)
                 }
-                _ => Some(Token {
-                    kind,
-                    line: self.line as u32,
-                    ..Default::default()
-                }),
             }
-        } else {
-            // match_token returns None, we have
-            // hit whitespace or something
-            return self.scan_token();
+
+            b' ' | b'\r' | b'\t' => return None,
+
+            b'\n' => {
+                self.line += 1;
+                return None;
+            }
+
+            b'"' => {
+                if let Some(value) = self.scan_string() {
+                    Token {
+                        kind: TokenType::String,
+                        line: self.line,
+                        literal: Some(value.to_string()),
+                        ..Default::default()
+                    }
+                } else {
+                    report_error(self.line, "Unterminated string".into());
+                    return None;
+                }
+            }
+
+            _ => Token {
+                kind: TokenType::Unknown,
+                line: self.line,
+                ..Default::default()
+            },
+        };
+
+        return Some(token);
+    }
+
+    fn match_or(&mut self, next: u8, one: TokenType, two: TokenType) -> Token {
+        let kind = if self.match_next(next) { one } else { two };
+
+        Token {
+            kind,
+            line: self.line,
+            ..Default::default()
+        }
+    }
+
+    fn create_token(&self, kind: TokenType) -> Token {
+        Token {
+            kind,
+            line: self.line,
+            ..Default::default()
         }
     }
 
@@ -76,64 +122,6 @@ impl<'a> Scanner<'a> {
         self.current += 1;
 
         ch
-    }
-
-    fn match_token(&mut self, ch: u8) -> Option<TokenType> {
-        return match ch {
-            b'(' => Some(TokenType::LeftParen),
-            b')' => Some(TokenType::RightParen),
-            b',' => Some(TokenType::Comma),
-            b'.' => Some(TokenType::Dot),
-            b'-' => Some(TokenType::Minus),
-            b'+' => Some(TokenType::Plus),
-            b';' => Some(TokenType::Semicolon),
-            b'*' => Some(TokenType::Star),
-
-            b'!' => Some(if self.check_next(b'=') {
-                TokenType::BangEqual
-            } else {
-                TokenType::Bang
-            }),
-
-            b'=' => Some(if self.check_next(b'=') {
-                TokenType::EqualEqual
-            } else {
-                TokenType::Equal
-            }),
-
-            b'<' => Some(if self.check_next(b'=') {
-                TokenType::LessEqual
-            } else {
-                TokenType::Less
-            }),
-
-            b'>' => Some(if self.check_next(b'=') {
-                TokenType::GreaterEqual
-            } else {
-                TokenType::Greater
-            }),
-
-            b'/' => {
-                if self.check_next(b'/') {
-                    while self.peek() != b'\n' && !self.is_at_end() {
-                        self.advance();
-                    }
-                    None
-                } else {
-                    Some(TokenType::Slash)
-                }
-            }
-
-            b' ' | b'\r' | b'\t' => None,
-
-            b'\n' => {
-                self.line += 1;
-                None
-            }
-
-            b'"' => Some(TokenType::String),
-            _ => Some(TokenType::Unknown),
-        };
     }
 
     fn scan_string(&mut self) -> Option<String> {
@@ -161,7 +149,7 @@ impl<'a> Scanner<'a> {
         Some(literal)
     }
 
-    fn check_next(&mut self, expected: u8) -> bool {
+    fn match_next(&mut self, expected: u8) -> bool {
         if self.is_at_end() || self.source[self.current] != expected {
             return false;
         }
@@ -176,10 +164,6 @@ impl<'a> Scanner<'a> {
         } else {
             self.source[self.current]
         }
-    }
-
-    fn is_eof(&self) -> bool {
-        self.current == self.source.len()
     }
 
     fn is_at_end(&self) -> bool {
