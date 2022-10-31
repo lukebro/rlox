@@ -4,6 +4,7 @@ use lazy_static::lazy_static;
 
 use crate::report_error;
 use crate::token::{Token, TokenType};
+use crate::utils::*;
 
 lazy_static! {
     static ref KEYWORDS: HashMap<&'static str, TokenType> = {
@@ -280,16 +281,4 @@ impl<'a> Scanner<'a> {
 
         self.offset_as_string(0)
     }
-}
-
-fn is_digit(digit: u8) -> bool {
-    digit >= b'0' && digit <= b'9'
-}
-
-fn is_alpha(alpha: u8) -> bool {
-    (alpha >= b'a' && alpha <= b'z') || (alpha >= b'A' && alpha <= b'Z') || (alpha == b'_')
-}
-
-fn is_alphanumeric(c: u8) -> bool {
-    is_digit(c) || is_alpha(c)
 }

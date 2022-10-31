@@ -1,5 +1,6 @@
 mod scanner;
 mod token;
+mod utils;
 
 use std::io::{self, BufRead, Write};
 use std::{env, fs, path::PathBuf};
