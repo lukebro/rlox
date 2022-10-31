@@ -31,7 +31,7 @@ impl Display for Token {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 #[allow(dead_code)]
 pub enum TokenType {
     // Single-character tokens.

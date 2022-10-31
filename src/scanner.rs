@@ -282,3 +282,38 @@ impl<'a> Scanner<'a> {
         self.offset_as_string(0)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Scanner;
+    use crate::token::{Token, TokenType};
+
+    macro_rules! test_file {
+        ($name:ident, $file:expr) => {
+            #[test]
+            fn $name() {
+                let file_path = format!("./tests/{}", $file);
+                let source = std::fs::read_to_string(file_path).unwrap();
+                let mut scanner = Scanner::new(&source);
+                let tokens = scanner.scan_tokens();
+
+                let unknowns: Vec<Token> = tokens
+                    .into_iter()
+                    .filter(|token| token.kind == TokenType::Unknown)
+                    .collect();
+
+                assert_eq!(unknowns.len(), 0);
+            }
+        };
+    }
+
+    // TODO(luke): it would be cool to use a build.rs script
+    // to build this dynamically based on text fixtures we have created
+    test_file!(it_works, "basic.lox");
+    test_file!(identifiers, "scanning/identifiers.lox");
+    test_file!(keywords, "scanning/keywords.lox");
+    test_file!(numbers, "scanning/numbers.lox");
+    test_file!(punctuators, "scanning/punctuators.lox");
+    test_file!(strings, "scanning/strings.lox");
+    test_file!(whitespace, "scanning/whitespace.lox");
+}
