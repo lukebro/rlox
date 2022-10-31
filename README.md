@@ -22,6 +22,12 @@ rlox [script]
 rlox
 ```
 
+## How to run tests
+
+```sh
+cargo test
+```
+
 ## TODO
 
 - [x] Scanning
