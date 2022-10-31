@@ -24,8 +24,10 @@ rlox
 
 ## TODO
 
-- [ ] Scanning (_in progress_)
-- [ ] Representing Code
+- [x] Scanning
+  - Add tests
+  - Improve error handling
+- [ ] Representing Code (_in progress_)
 - [ ] Parsing Expressions
 - [ ] Evaluating Expressions
 - [ ] Statements and State

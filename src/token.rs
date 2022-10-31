@@ -1,31 +1,37 @@
-
 use std::fmt::Display;
 
 #[derive(Debug, Default)]
 pub struct Token {
     pub kind: TokenType,
     pub lexem: Option<String>,
-    pub literal: Option<String>,
-    pub line: u32,
+    pub line: usize,
 }
 
 impl Display for Token {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    // KIND LEXEM? LITERAL?
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        // TODO(luke): impl Display for TokenType
         write!(f, "{:?}", self.kind)?;
 
         if let Some(lexem) = self.lexem.as_ref() {
             write!(f, " {}", lexem)?;
         }
 
-        if let Some(literal) = self.literal.as_ref() {
-            write!(f, " {}", literal)?;
+        match &self.kind {
+            TokenType::String(text) => {
+                write!(f, " {}", text)?;
+            }
+            TokenType::Number(num) => {
+                write!(f, " {:.2}", num)?;
+            }
+            _ => (),
         }
 
         Ok(())
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 #[allow(dead_code)]
 pub enum TokenType {
     // Single-character tokens.
@@ -52,9 +58,9 @@ pub enum TokenType {
     LessEqual,
 
     // Literals.
-    Identifier,
-    String,
-    Number,
+    Identifier(String),
+    String(String),
+    Number(f64),
 
     // Keywords.
     And,
@@ -74,7 +80,7 @@ pub enum TokenType {
     Var,
     While,
 
-    EOF,
+    Eof,
 
     #[default]
     Unknown,
