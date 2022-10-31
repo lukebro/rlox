@@ -30,13 +30,6 @@ lazy_static! {
     };
 }
 
-fn keyword(identifier: &str) -> Option<TokenType> {
-    match KEYWORDS.get(identifier) {
-        None => None,
-        Some(token) => Some(token.clone()),
-    }
-}
-
 pub struct Scanner<'a> {
     line: usize,
     start: usize,
@@ -137,8 +130,8 @@ impl<'a> Scanner<'a> {
                     }
                 } else if is_alpha(c) {
                     if let Some(value) = self.scan_identifier() {
-                        if let Some(reserved) = keyword(&value) {
-                            return Some(self.new_token(reserved));
+                        if let Some(reserved) = KEYWORDS.get(&*value) {
+                            return Some(self.new_token(reserved.clone()));
                         } else {
                             return Some(self.new_token(TokenType::Identifier(value)));
                         }
